@@ -113,6 +113,9 @@ class Img:
     def show(self) -> None:
         self.img.show()
 
+    def save(self, name: str, append_images=None) -> None:
+        self.img.save(name, save_all=append_images is not None, append_images=[img.img for img in append_images])
+
 
     # Image projection
     @staticmethod

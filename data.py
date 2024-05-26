@@ -47,7 +47,7 @@ class GeoData:
         return (self.min() + self.max())/2
 
 
-    def fit_to_bounds(self, dx: float, dy: float):
+    def segment(self, dx: float, dy: float):
 
         geo_data = list()
         prev_idx = 0
@@ -129,6 +129,6 @@ class GeoData:
 if __name__ == "__main__":
     data = GeoData.from_gpx("gpx\jakobswege.gpx")
     geo_data = data[0]
-    d = geo_data.fit_to_bounds(0.0005, 0.0005)
+    d = geo_data.segment(0.0005, 0.0005)
     for a in d:
         print(a.x, a.y)

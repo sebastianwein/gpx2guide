@@ -9,17 +9,22 @@ class Map:
 
     def __init__(self, geo_coord: GeoCoord, scale: tuple[int, int], paper_size: tuple[float, float], dpi: float) -> None:
 
+        self.geo_coord = geo_coord
         self.scale = scale
-        paper_width, paper_height = paper_size
-        delta_x = self.geo2mercator_dist(self.paper2geo_dist(paper_width), geo_coord.lat)
-        delta_y = self.geo2mercator_dist(self.paper2geo_dist(paper_height), geo_coord.lat)
+        self.paper_size = paper_size
+        self.dpi = dpi
+
+        paper_width, paper_height = self.paper_size
+        delta_x = self.paper2mercator_dist(paper_width)
+        delta_y = self.paper2mercator_dist(paper_height)
         mercator_coord = geo_coord.to_mercator()
         xmin = mercator_coord.x - delta_x/2
         xmax = mercator_coord.x + delta_x/2
         ymin = mercator_coord.y - delta_y/2
         ymax = mercator_coord.y + delta_y/2
-        lims = (xmin, xmax, ymin, ymax)
-        self.img = Img(lims, paper_size, dpi)
+        self.lims = (xmin, xmax, ymin, ymax)
+        self.img = Img(self.lims, self.paper_size, self.dpi)
+
         # drawing scale
         scale_len = 4
         eng_number = str(EngNumber(self.paper2geo_dist(scale_len)*1000))
@@ -48,6 +53,9 @@ class Map:
     
     def show(self) -> None:
         self.img.show()
+
+    def save(self, name: str, append_maps=None) -> None:
+        self.img.save(name, append_images=[map.img for map in append_maps])
     
 
     def paper2geo_dist(self, paper_dist):
@@ -61,25 +69,9 @@ class Map:
         delta_lam = np.arccos(1 - 2*np.power(np.sin(dist/(2*R)),2)/np.power(np.cos(np.deg2rad(lat)),2))
         delta_lon = np.rad2deg(delta_lam)
         return delta_lon
-    @staticmethod
-    def geo2mercator_dist(geo_dist, lat):
-        delta_lon = Map.haversine_delta_lon(geo_dist, lat)
+    def geo2mercator_dist(self, geo_dist):
+        delta_lon = Map.haversine_delta_lon(geo_dist, self.geo_coord.lat)
         mercator_dist = GeoCoord.geo2mercator_x(delta_lon)
         return mercator_dist
-    
-
-if __name__ == "__main__":
-    data = GeoData.from_gpx("gpx\jakobswege.gpx")
-    a = 1
-    b = 20000
-    paper_size = (14.8, 21)
-    geo_coord = data[0].mean()
-    map = Map(geo_coord, (a, b), paper_size, 300)
-    d = data[0].fit_to_bounds(Map.geo2mercator_dist(map.paper2geo_dist(paper_size[0]), geo_coord.lat), Map.geo2mercator_dist((map.paper2geo_dist(paper_size[1])), geo_coord.lat))
-    # d = data[0].fit_to_bounds(3*0.000148, 3*0.00021)
-    print(d)
-    for geo_data in d:
-        geo_coord = geo_data.mean()
-        map = Map(geo_coord, (a, b), paper_size, 300)
-        map.route(geo_data, marker=True)
-        map.show()
+    def paper2mercator_dist(self, paper_dist):
+        return self.geo2mercator_dist(self.paper2geo_dist(paper_dist))
