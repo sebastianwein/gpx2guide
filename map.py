@@ -35,9 +35,10 @@ class Map:
     def route(self, geo_data: GeoData, marker=False):
         self.img.lines(geo_data.x, geo_data.y, color="red")
         if not marker: return
-        delta = np.ceil(self.paper2geo_dist(1))
-        for dist in range(1, int(np.max(geo_data.dist)), int(delta)):
+        delta = int(np.ceil(self.paper2geo_dist(2)))
+        for dist in range(int(np.min(geo_data.dist)), int(np.max(geo_data.dist))+1, delta):
             geo_coord1 = geo_data.find_dist(dist)
+            if geo_coord1 == None: continue
             geo_coord2 = geo_data.find_dist(dist, interpolate=False)
             mercator_coord1 = geo_coord1.to_mercator()
             mercator_coord2 = geo_coord2.to_mercator()
@@ -69,10 +70,16 @@ class Map:
 
 if __name__ == "__main__":
     data = GeoData.from_gpx("gpx\jakobswege.gpx")
-    geo_data = data[4]
-    geo_coord = geo_data.mean()
     a = 1
     b = 20000
-    map = Map(geo_coord, (a, b), (14.8, 21), 300)
-    map.route(geo_data, marker=True)
-    map.show()
+    paper_size = (14.8, 21)
+    geo_coord = data[0].mean()
+    map = Map(geo_coord, (a, b), paper_size, 300)
+    d = data[0].fit_to_bounds(Map.geo2mercator_dist(map.paper2geo_dist(paper_size[0]), geo_coord.lat), Map.geo2mercator_dist((map.paper2geo_dist(paper_size[1])), geo_coord.lat))
+    # d = data[0].fit_to_bounds(3*0.000148, 3*0.00021)
+    print(d)
+    for geo_data in d:
+        geo_coord = geo_data.mean()
+        map = Map(geo_coord, (a, b), paper_size, 300)
+        map.route(geo_data, marker=True)
+        map.show()

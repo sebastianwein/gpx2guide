@@ -68,6 +68,24 @@ class MercatorCoord():
     def __repr__(self) -> str:
         return f"<MercatorCoord lat:{self.x}, lon:{self.y}>"
     
+    def __add__(self, other):
+        return MercatorCoord(self.x+other.x, self.y+other.y)
+    
+    def __sub__(self, other):
+        return MercatorCoord(self.x-other.x, self.y-other.y)
+    
+    def __rmul__(self, scalar: float):
+        if isinstance(scalar, (int, np.integer)) or isinstance(scalar, (float, np.floating)):
+            return MercatorCoord(scalar*self.x, scalar*self.y)
+        else:
+            raise NotImplementedError
+
+    def __truediv__(self, scalar: float):
+        if isinstance(scalar, (int, np.integer)) or isinstance(scalar, (float, np.floating)):
+            return MercatorCoord(self.x/scalar, self.y/scalar)
+        else:
+            raise NotImplementedError
+    
     
     def to_geo(self) -> GeoCoord:
         lat = self.mercator2geo_lat(self.y)
