@@ -20,7 +20,7 @@ class GeoData:
         lon = np.array([geo_coord.lon for geo_coord in geo_coords])
         x = np.array([geo_coord.to_mercator().x for geo_coord in geo_coords])
         y = np.array([geo_coord.to_mercator().y for geo_coord in geo_coords])
-        func = lambda a: GeoCoord.dist(a[0], a[1])
+        func = lambda a: a[0].dist(a[1])
         delta = np.insert(np.apply_along_axis(func, 1, np.column_stack((geo_coords[:-1], geo_coords[1:]))), 0, 0)
         dist = np.cumsum(delta)
         return cls(lat, lon, x, y, dist)
@@ -107,7 +107,8 @@ class GeoData:
             dist = np.append(dist[:idx], dist_interp)
             geo_data.append(GeoData(lat, lon, x, y, dist))
 
-            prev_idx += idx-1
+            if prev_idx == 0: prev_idx = idx
+            else: prev_idx += idx-1
 
         if prev_idx == self.len-1: return geo_data
 
@@ -132,8 +133,8 @@ class GeoData:
             error = (geo_coord2-t[0]*(geo_coord2-geo_coord1)).dist(geo_coord2) - (dist2-dist)
             return error
         t = np.abs(root(error, [0]).x[0])
-        geo_coord = geo_coord2 - t*(geo_coord2-geo_coord1)
-        return geo_coord
+        geo_coord_interp = geo_coord2 - t*(geo_coord2-geo_coord1)
+        return geo_coord_interp
 
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@ class Img:
 
 
     _LINE_WIDTH = 1.5
+    _DOTTED_LENGTH = 7.95
+    _DOTTED_RATIO = 0.6
     _FONT = "arial.ttf"
     _FONT_SIZE = 10
     _SPACING = 2
@@ -32,6 +34,76 @@ class Img:
         ij = np.array([i, j]).flatten("F").tolist()
         draw = ImageDraw.Draw(self.img)
         draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
+
+    def dotted(self, x: list[float], y: list[float], color: str, line_width: float=None, dotted_length: float=None, dotted_ratio: float=None) -> None:
+        if line_width == None: line_width = self._LINE_WIDTH
+        if dotted_length == None: dotted_length = self._DOTTED_LENGTH
+        if dotted_ratio == None: dotted_ratio = self._DOTTED_RATIO
+
+        x = np.array(x)
+        y = np.array(y)
+        slices = np.ma.clump_masked(np.ma.masked_where(np.logical_and(np.logical_and(x<self.xmax, x>self.xmin), np.logical_and(y<self.ymax, y>self.ymin)), x))
+        for slice in slices:
+            start = slice.start
+            stop = slice.stop
+            if start > 0: start -= 1
+            if stop < x.size-1: stop += 1
+
+            slice_i = self.data2img_i(x[start:stop], self.xmin, self.xmax, self.width)
+            slice_j = self.data2img_j(y[start:stop], self.ymin, self.ymax, self.height)
+            slice_length = np.sqrt(np.sum(np.power((slice_i - slice_j), 2)))
+            func = lambda a:  np.sqrt(np.power(a[0]-a[2], 2) + np.power(a[1]-a[3], 2))
+            delta = np.insert(np.apply_along_axis(func, 1, np.column_stack((slice_i[:-1], slice_j[:-1], slice_i[1:], slice_j[1:]))), 0, 0)
+            slice_length = np.cumsum(delta)
+
+            prev_idx = 0
+            while True:
+
+                i = slice_i[prev_idx:]
+                j = slice_j[prev_idx:]
+                length = slice_length[prev_idx:]
+                if prev_idx > 0: 
+                    i = np.insert(i, 0, i_interp)
+                    j = np.insert(j, 0, j_interp)
+                    length = np.insert(length, 0, length_interp)
+                
+                draw_length = length[0] + dotted_ratio*self.font2img_len(dotted_length)
+                idx = np.argmax(length > draw_length)
+                if idx == 0: break
+                i1 = i[idx-1]
+                j1 = j[idx-1]
+                length1 = length[idx-1]
+                i2 = i[idx]
+                j2 = j[idx]
+                length2 = length[idx]
+                t = (length2 - draw_length)/(length2 - length1)
+                i_interp = i2 - t*(i2 - i1)
+                j_interp = j2 - t*(j2 - j1)
+                # Drawing
+                ij = np.array([np.append(i[:idx], i_interp), np.append(j[:idx], j_interp)]).flatten("F").tolist()
+                draw = ImageDraw.Draw(self.img)
+                draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
+
+                total_length = length[0] + self.font2img_len(dotted_length)
+                idx = np.argmax(length > total_length)
+                if idx == 0: break
+                i1 = i[idx-1]
+                j1 = j[idx-1]
+                length1 = length[idx-1]
+                i2 = i[idx]
+                j2 = j[idx]
+                length2 = length[idx]
+                t = (length2 - total_length)/(length2 - length1)
+                i_interp = i2 - t*(i2 - i1)
+                j_interp = j2 - t*(j2 - j1)
+                length_interp = total_length
+
+                if prev_idx == 0: prev_idx = idx
+                else: prev_idx += idx-1
+
+            ij = np.array([i, j]).flatten("F").tolist()
+            draw = ImageDraw.Draw(self.img)
+            draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
 
     def text(self, x: float, y: float, text: str, color: str, angle: float=0) -> None:
 
@@ -96,7 +168,7 @@ class Img:
         draw = ImageDraw.Draw(self.img)
         draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
 
-    def scale(self, scale_len: float, scale_dist: float, unit: str) -> None:
+    def scalebar(self, scale_len: float, scale_dist: float, unit: str) -> None:
         bar_width = self.paper2img_len(scale_len)
         bar_height = self.font2img_len(self._FONT_SIZE)
         draw = ImageDraw.Draw(self.img)

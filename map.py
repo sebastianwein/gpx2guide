@@ -25,20 +25,9 @@ class Map:
         self.lims = (xmin, xmax, ymin, ymax)
         self.img = Img(self.lims, self.paper_size, self.dpi)
 
-        # drawing scale
-        scale_len = 4
-        eng_number = str(EngNumber(self.paper2geo_dist(scale_len)*1000))
-        if eng_number[-1].isalpha():
-            scale_dist = float(eng_number[:-1])
-            unit = f"{eng_number[-1]}m"
-        else:
-            scale_dist = float(eng_number)
-            unit = "m"
-        self.img.scale(scale_len, scale_dist, unit)
-
-
-    def route(self, geo_data: GeoData, marker=False):
-        self.img.lines(geo_data.x, geo_data.y, color="red")
+    def route(self, geo_data: GeoData, dotted=False, marker=False):
+        if not dotted: self.img.lines(geo_data.x, geo_data.y, color="red")
+        else: self.img.dotted(geo_data.x, geo_data.y, color="green")
         if not marker: return
         delta = int(np.ceil(self.paper2geo_dist(2)))
         for dist in range(int(np.min(geo_data.dist)), int(np.max(geo_data.dist))+1, delta):
@@ -51,6 +40,17 @@ class Map:
             self.img.mark(mercator_coord1.x, mercator_coord1.y, color="red", angle=np.rad2deg(angle))
             self.img.annotate(mercator_coord1.x, mercator_coord1.y, str(dist), color="black", angle=np.rad2deg(angle))
     
+    def scalebar(self) -> None:
+        scale_len = 4
+        eng_number = str(EngNumber(self.paper2geo_dist(scale_len)*1000))
+        if eng_number[-1].isalpha():
+            scale_dist = float(eng_number[:-1])
+            unit = f"{eng_number[-1]}m"
+        else:
+            scale_dist = float(eng_number)
+            unit = "m"
+        self.img.scalebar(scale_len, scale_dist, unit)
+
     def show(self) -> None:
         self.img.show()
 
