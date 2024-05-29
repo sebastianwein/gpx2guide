@@ -25,9 +25,10 @@ class Map:
         self.lims = (xmin, xmax, ymin, ymax)
         self.img = Img(self.lims, self.paper_size, self.dpi)
 
+
     def route(self, geo_data: GeoData, dotted=False, marker=False):
         if not dotted: self.img.lines(geo_data.x, geo_data.y, color="red")
-        else: self.img.dotted(geo_data.x, geo_data.y, color="green")
+        else: self.img.dotted(geo_data.x, geo_data.y, color="red")
         if not marker: return
         delta = int(np.ceil(self.paper2geo_dist(2)))
         for dist in range(int(np.min(geo_data.dist)), int(np.max(geo_data.dist))+1, delta):

@@ -1,5 +1,6 @@
+from io import BytesIO
 import numpy as np
-from PIL import Image, ImageFont, ImageDraw, ImageOps
+from PIL import Image, ImageFont, ImageDraw
 
     
 class Img:
@@ -105,6 +106,7 @@ class Img:
             draw = ImageDraw.Draw(self.img)
             draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
 
+
     def text(self, x: float, y: float, text: str, color: str, angle: float=0) -> None:
 
         bbox = self.font.getbbox(text, stroke_width=self.font2img_len(self._STROKE_WIDTH))
@@ -155,6 +157,7 @@ class Img:
         kwargs = {"font": self.font, "anchor": anchor, "spacing": self.font2img_len(self._SPACING), "stroke_width": self.font2img_len(self._STROKE_WIDTH), "stroke_fill": self._STROKE_FILL}
         draw.text(ij, text, color, **kwargs)
 
+
     def mark(self, x: float, y: float, color: str, angle: float=0, length: float=None, line_width: float=None) -> None:
         if length == None: length = self.font2img_len(self._FONT_SIZE)
         if line_width == None: line_width = self._LINE_WIDTH
@@ -167,6 +170,17 @@ class Img:
         ij = [i1, j1, i2, j2]
         draw = ImageDraw.Draw(self.img)
         draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
+
+    
+    def paste(self, img_str: str, lims: tuple[float, float, float, float]):
+        img = Image.open(BytesIO(img_str.content))
+        imin = self.data2img_i(lims[0])
+        imax = self.data2img_i(lims[1])
+        jmin = self.data2img_j(lims[2])
+        jmax = self.data2img_j(lims[3])
+        img = map.resize(self.img.size, resample=Image.Resampling.LANCZOS, box=(imin, jmin, imax, jmax))
+        self.img.paste(img)
+
 
     def scalebar(self, scale_len: float, scale_dist: float, unit: str) -> None:
         bar_width = self.paper2img_len(scale_len)
@@ -181,6 +195,7 @@ class Img:
         draw.text([bar_width/2, self.height-bar_height], f"{np.round(scale_dist/2,2):g}", anchor="ms", **kwargs)
         draw.text([bar_width, self.height-bar_height], f"{np.round(scale_dist,2):g}", anchor="rs", **kwargs)
         draw.text([bar_width, self.height-bar_height], unit, anchor="ls", **kwargs)
+
 
     def show(self) -> None:
         self.img.show()
@@ -211,10 +226,9 @@ class Img:
         img_len = self.paper2img_len(Img.font2paper_len(font_len))
         return img_len
 
-    
 
 if __name__ == "__main__":
-    img = Img((0, 3, -1.5, 1.5), (10, 10), 500)
+    img = Img((0, 3, -5, 5), (10, 10), 500)
     r = 0.3
     x = np.linspace(0, 10, 1000)
     y = lambda x: np.sin(r**2 - x**2)
