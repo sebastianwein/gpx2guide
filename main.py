@@ -5,7 +5,7 @@ from map import *
 if __name__ == "__main__":
 
     scale = (1, 20000)
-    paper_size = (10, 20) #  (14.8, 21)
+    paper_size = (14.8, 21) #  (14.8, 21)
     dpi = 300
     margin = 1
 
