@@ -142,7 +142,7 @@ class Img:
         self.img.paste(box, ij, mask)
 
     def annotate(self, x: float, y: float, text: str, color: str, angle: float=0, distance: float=None) -> None:
-        if distance == None: distance = self.font2img_len(self._FONT_SIZE)/2
+        if distance == None: distance = self.font2img_len(self._FONT_SIZE)/2 + self.font2img_len(self._SPACING)
         i0 = self.data2img_i(x)
         j0 = self.data2img_j(y)
         i = i0 + distance*np.cos(np.deg2rad(angle))
@@ -193,10 +193,10 @@ class Img:
         draw.rectangle([bar_width/2, self.height-bar_height, 3*bar_width/4, self.height], fill="black")
         draw.rectangle([3*bar_width/4, self.height-bar_height, bar_width, self.height], fill="white", outline="black", width=self.font2img_len(self._LINE_WIDTH))
         kwargs = {"fill": "black", "font": self.font, "spacing": self.font2img_len(self._SPACING), "stroke_width": self.font2img_len(self._STROKE_WIDTH), "stroke_fill": self._STROKE_FILL}
-        draw.text([0, self.height-bar_height], "0", anchor="ls", **kwargs) 
-        draw.text([bar_width/2, self.height-bar_height], f"{np.round(scale_dist/2,2):g}", anchor="ms", **kwargs)
-        draw.text([bar_width, self.height-bar_height], f"{np.round(scale_dist,2):g}", anchor="rs", **kwargs)
-        draw.text([bar_width, self.height-bar_height], unit, anchor="ls", **kwargs)
+        draw.text([0, self.height-bar_height-self.font2img_len(self._SPACING)], "0", anchor="ls", **kwargs) 
+        draw.text([bar_width/2, self.height-bar_height-self.font2img_len(self._SPACING)], f"{np.round(scale_dist/2,2):g}", anchor="ms", **kwargs)
+        draw.text([bar_width, self.height-bar_height-self.font2img_len(self._SPACING)], f"{np.round(scale_dist,2):g}", anchor="rs", **kwargs)
+        draw.text([bar_width, self.height-bar_height-self.font2img_len(self._SPACING)], unit, anchor="ls", **kwargs)
 
 
     def show(self) -> None:

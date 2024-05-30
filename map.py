@@ -53,20 +53,20 @@ class Map:
         tile1 = Tile.from_geo(MercatorCoord(self.lims[0], self.lims[2]).to_geo(), self.zoom)
         tile2 = Tile.from_geo(MercatorCoord(self.lims[1], self.lims[3]).to_geo(), self.zoom)
 
+        tile_size = 256
+        img = Image.new(mode="RGB", size=((tile2.xmax-tile1.xmin)*tile_size, (tile1.ymax-tile2.ymin)*tile_size))
         def paste(tile):
-            img_url = url.format(tile.zoom, tile.x, tile.y)
-            res = requests.get(img_url, headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0"})
-            img = Image.open(BytesIO(res.content))
-            xmin = tile.geo_coord_min.to_mercator().x
-            xmax = tile.geo_coord_max.to_mercator().x
-            ymin = tile.geo_coord_min.to_mercator().y
-            ymax = tile.geo_coord_max.to_mercator().y
-            self.img.paste(img, (xmin, xmax, ymin, ymax))
+            tile_url = url.format(tile.zoom, tile.x, tile.y)
+            res = requests.get(tile_url, headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0"})
+            tile_img = Image.open(BytesIO(res.content))
+            img.paste(tile_img, ((tile.x-tile1.xmin)*tile_size, (tile.y-tile2.ymin)*tile_size))
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for x in range(tile1.xmin, tile2.xmax):
                 for y in range(tile2.ymin, tile1.ymax):
                     executor.submit(paste, Tile(x, y, self.zoom))
+
+        self.img.paste(img, (tile1.geo_coord_min.to_mercator().x, tile2.geo_coord_max.to_mercator().x, tile1.geo_coord_min.to_mercator().y, tile2.geo_coord_max.to_mercator().y))
     
     def scalebar(self) -> None:
         scale_len = 4
