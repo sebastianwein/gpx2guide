@@ -57,7 +57,7 @@ class Map:
         img = Image.new(mode="RGB", size=((tile2.xmax-tile1.xmin)*tile_size, (tile1.ymax-tile2.ymin)*tile_size))
         def paste(tile):
             tile_url = url.format(tile.zoom, tile.x, tile.y)
-            res = requests.get(tile_url, headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0"})
+            res = requests.get(tile_url, headers={"User-Agent":"Mozilla/5.0 (Linux; Android 9; motorola one action Build/PSBS29.39-23-6; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/79.0.3945.93 Mobile Safari/537.36 Viber/13.9.0.12"})
             tile_img = Image.open(BytesIO(res.content))
             img.paste(tile_img, ((tile.x-tile1.xmin)*tile_size, (tile.y-tile2.ymin)*tile_size))
         
