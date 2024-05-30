@@ -119,11 +119,22 @@ class MercatorCoord():
 
 class Tile:
 
-    def __init__(self, geo_coord, zoom):
-        self.x = self.geo2tile_x(geo_coord.lon, zoom)
-        self.y =  self.geo2tile_y(geo_coord.lat, zoom)
-        self.geo_coord_min = GeoCoord(self.tile2geo_lat(self.y+1, zoom), self.tile2geo_lon(self.x, zoom))
-        self.geo_coord_max = GeoCoord(self.tile2geo_lat(self.y, zoom), self.tile2geo_lon(self.x+1, zoom))
+    def __init__(self, x, y, zoom):
+        self.x = x
+        self.y = y
+        self.zoom = zoom
+        self.xmin = self.x
+        self.xmax = self.x + 1
+        self.ymin = self.y
+        self.ymax = self.y + 1
+        self.geo_coord_min = GeoCoord(self.tile2geo_lat(self.ymax, self.zoom), self.tile2geo_lon(self.xmin, self.zoom))
+        self.geo_coord_max = GeoCoord(self.tile2geo_lat(self.ymin, self.zoom), self.tile2geo_lon(self.xmax, self.zoom))
+
+    @classmethod
+    def from_geo(self, geo_coord, zoom):
+        x = self.geo2tile_x(geo_coord.lon, zoom)
+        y = self.geo2tile_y(geo_coord.lat, zoom)
+        return Tile(x, y, zoom)
     
     def __repr__(self):
         return f"<Tile x:{self.x}, y:{self.y}, coord_min:{self.geo_coord_min}, coord_max:{self.geo_coord_max}>"
@@ -150,14 +161,5 @@ class Tile:
 
 if __name__ == "__main__":
 
-    geo_coord1 = GeoCoord(-50, 10)
-    mercator_coord1 = geo_coord1.to_mercator()
-    mercator_coord2 = MercatorCoord(0.2, 1.05)
-    geo_coord2 = mercator_coord2.to_geo()
-
-    geo_dist = geo_coord1.dist(geo_coord2)
-    mercator_dist = mercator_coord1.dist(mercator_coord2)
-
-    geo_coord = np.mean([geo_coord1, geo_coord2])
-    tile = Tile(geo_coord2, 13)
+    tile = Tile(4323, 5413, 13)
     print(tile)

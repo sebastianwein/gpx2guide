@@ -30,8 +30,8 @@ class Img:
         if line_width == None: line_width = self._LINE_WIDTH
         x = np.array(x)
         y = np.array(y)
-        i = self.data2img_i(x, self.xmin, self.xmax, self.width)
-        j = self.data2img_j(y, self.ymin, self.ymax, self.height)
+        i = self.data2img_i(x)
+        j = self.data2img_j(y)
         ij = np.array([i, j]).flatten("F").tolist()
         draw = ImageDraw.Draw(self.img)
         draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
@@ -50,8 +50,8 @@ class Img:
             if start > 0: start -= 1
             if stop < x.size-1: stop += 1
 
-            slice_i = self.data2img_i(x[start:stop], self.xmin, self.xmax, self.width)
-            slice_j = self.data2img_j(y[start:stop], self.ymin, self.ymax, self.height)
+            slice_i = self.data2img_i(x[start:stop])
+            slice_j = self.data2img_j(y[start:stop])
             slice_length = np.sqrt(np.sum(np.power((slice_i - slice_j), 2)))
             func = lambda a:  np.sqrt(np.power(a[0]-a[2], 2) + np.power(a[1]-a[3], 2))
             delta = np.insert(np.apply_along_axis(func, 1, np.column_stack((slice_i[:-1], slice_j[:-1], slice_i[1:], slice_j[1:]))), 0, 0)
@@ -122,8 +122,8 @@ class Img:
         box = box.rotate(angle, Image.Resampling.BICUBIC, expand=True)
         mask = mask.rotate(angle, Image.Resampling.BICUBIC, expand=True)
 
-        i = self.data2img_i(x, self.xmin, self.xmax, self.width)
-        j = self.data2img_j(y, self.ymin, self.ymax, self.height)
+        i = self.data2img_i(x)
+        j = self.data2img_j(y)
         if angle % 360 <= 90:
             i -=  text_height*np.cos(np.deg2rad(90 - angle))
             j -=  box.height
@@ -143,8 +143,8 @@ class Img:
 
     def annotate(self, x: float, y: float, text: str, color: str, angle: float=0, distance: float=None) -> None:
         if distance == None: distance = self.font2img_len(self._FONT_SIZE)/2
-        i0 = self.data2img_i(x, self.xmin, self.xmax, self.width)
-        j0 = self.data2img_j(y, self.ymin, self.ymax, self.height)
+        i0 = self.data2img_i(x)
+        j0 = self.data2img_j(y)
         i = i0 + distance*np.cos(np.deg2rad(angle))
         j = j0 - distance*np.sin(np.deg2rad(angle))
         ij = [i, j]
@@ -152,8 +152,7 @@ class Img:
         anchors = ["lm", "ls", "ms", "rs", "rm", "rt", "mt", "lt"]
         for i, anchor in enumerate(anchors): 
             # See https://stackoverflow.com/a/66834497
-            if (angle - (i-1/2)*45) % 360 <= 45: 
-                break
+            if (angle - (i-1/2)*45) % 360 <= 45: break
         kwargs = {"font": self.font, "anchor": anchor, "spacing": self.font2img_len(self._SPACING), "stroke_width": self.font2img_len(self._STROKE_WIDTH), "stroke_fill": self._STROKE_FILL}
         draw.text(ij, text, color, **kwargs)
 
@@ -161,8 +160,8 @@ class Img:
     def mark(self, x: float, y: float, color: str, angle: float=0, length: float=None, line_width: float=None) -> None:
         if length == None: length = self.font2img_len(self._FONT_SIZE)
         if line_width == None: line_width = self._LINE_WIDTH
-        i0 = self.data2img_i(x, self.xmin, self.xmax, self.width)
-        j0 = self.data2img_j(y, self.ymin, self.ymax, self.height)
+        i0 = self.data2img_i(x)
+        j0 = self.data2img_j(y)
         i1 = i0 - length/2*np.cos(np.deg2rad(angle))
         j1 = j0 + length/2*np.sin(np.deg2rad(angle))
         i2 = i0 + length/2*np.cos(np.deg2rad(angle))
@@ -172,14 +171,17 @@ class Img:
         draw.line(ij, fill=color, width=self.font2img_len(line_width), joint="curve")
 
     
-    def paste(self, img_str: str, lims: tuple[float, float, float, float]):
-        img = Image.open(BytesIO(img_str.content))
-        imin = self.data2img_i(lims[0])
-        imax = self.data2img_i(lims[1])
-        jmin = self.data2img_j(lims[2])
-        jmax = self.data2img_j(lims[3])
-        img = map.resize(self.img.size, resample=Image.Resampling.LANCZOS, box=(imin, jmin, imax, jmax))
-        self.img.paste(img)
+    def paste(self, img: Image, lims: tuple[float, float, float, float]):
+        imin = max(self.data2img_i(lims[0]), 0)
+        imax = min(self.data2img_i(lims[1]), self.width)
+        jmin = max(self.data2img_j(lims[3]), 0)
+        jmax = min(self.data2img_j(lims[2]), self.height)
+        box = ((self.img2data_x(imin)-lims[0])/(lims[1]-lims[0])*img.width, 
+               (lims[3]-self.img2data_y(jmin))/(lims[3]-lims[2])*img.height, 
+               (self.img2data_x(imax)-lims[0])/(lims[1]-lims[0])*img.width, 
+               (lims[3]-self.img2data_y(jmax))/(lims[3]-lims[2])*img.height)
+        img = img.resize((int(imax-imin), int(jmax-jmin)), resample=Image.Resampling.LANCZOS, box=box)
+        self.img.paste(img, box=(int(imin), int(jmin))) 
 
 
     def scalebar(self, scale_len: float, scale_dist: float, unit: str) -> None:
@@ -205,14 +207,19 @@ class Img:
 
 
     # Image projection
-    @staticmethod
-    def data2img_i(x, xmin, xmax, width):
-        i = (x-xmin)/(xmax-xmin)*width
+    def data2img_i(self, x):
+        i = (x-self.xmin)/(self.xmax-self.xmin)*self.width
         return i
-    @staticmethod
-    def data2img_j(y, ymin, ymax, height):
-        j = (ymax-y)/(ymax-ymin)*height
+    def data2img_j(self, y):
+        j = (self.ymax-y)/(self.ymax-self.ymin)*self.height
         return j
+    # Inverse
+    def img2data_x(self, i):
+        x = i/self.width*(self.xmax-self.xmin) + self.xmin
+        return x
+    def img2data_y(self, j):
+        y = self.ymax - j/self.height*(self.ymax-self.ymin)
+        return y
     
     # Converting lengths
     @staticmethod
@@ -241,6 +248,7 @@ if __name__ == "__main__":
         img.annotate(x, y(x), str(int(angle)), "black", angle)
         angle = angle + 90
         img.text(x, y(x), f"der winkel beträgt {int(angle)}°", "purple", angle)
+    img.paste(Image.open("kartoffel.jpg"), (1, 4, -1, 6))
     img.show()
 
 

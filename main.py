@@ -4,9 +4,9 @@ from map import *
 
 if __name__ == "__main__":
 
-    scale = (1, 10000)
+    scale = (1, 20000)
     paper_size = (14.8, 21) #  (14.8, 21)
-    dpi = 300
+    dpi = 200
     margin = 1
 
     filename = "gpx/jakobswege.gpx"
@@ -24,6 +24,7 @@ if __name__ == "__main__":
             segment_dx = mercator_coord_max.x - mercator_coord_min.x
             segment_dy = mercator_coord_max.y - mercator_coord_min.y
             map = Map(segment.mean(), scale, sorted(paper_size, reverse=segment_dx>segment_dy), dpi)
+            map.map()
             map.route(segment, marker=True)
             if i>0: map.route(segments[i-1], dotted=True)
             if i<len(segments)-1: map.route(segments[i+1], dotted=True)

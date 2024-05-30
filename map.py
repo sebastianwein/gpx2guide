@@ -1,4 +1,6 @@
+import concurrent.futures
 from engineering_notation import EngNumber
+import requests
 from data import * 
 from img import *
 from units import *
@@ -25,6 +27,10 @@ class Map:
         self.lims = (xmin, xmax, ymin, ymax)
         self.img = Img(self.lims, self.paper_size, self.dpi)
 
+        zoom_max = 17
+        zoom = int(np.log2(self.scale[0]/self.scale[1]*dpi/256*4007501668/2.56*np.cos(self.geo_coord.phi)))
+        self.zoom = min(zoom, zoom_max)
+
 
     def route(self, geo_data: GeoData, dotted=False, marker=False):
         if not dotted: self.img.lines(geo_data.x, geo_data.y, color="red")
@@ -40,6 +46,27 @@ class Map:
             angle = mercator_coord1.angle(mercator_coord2) + np.pi/2
             self.img.mark(mercator_coord1.x, mercator_coord1.y, color="red", angle=np.rad2deg(angle))
             self.img.annotate(mercator_coord1.x, mercator_coord1.y, str(dist), color="black", angle=np.rad2deg(angle))
+
+    def map(self) -> None:
+
+        url = r"https://tile.opentopomap.org/{0}/{1}/{2}.png" 
+        tile1 = Tile.from_geo(MercatorCoord(self.lims[0], self.lims[2]).to_geo(), self.zoom)
+        tile2 = Tile.from_geo(MercatorCoord(self.lims[1], self.lims[3]).to_geo(), self.zoom)
+
+        def paste(tile):
+            img_url = url.format(tile.zoom, tile.x, tile.y)
+            res = requests.get(img_url, headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0"})
+            img = Image.open(BytesIO(res.content))
+            xmin = tile.geo_coord_min.to_mercator().x
+            xmax = tile.geo_coord_max.to_mercator().x
+            ymin = tile.geo_coord_min.to_mercator().y
+            ymax = tile.geo_coord_max.to_mercator().y
+            self.img.paste(img, (xmin, xmax, ymin, ymax))
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for x in range(tile1.xmin, tile2.xmax):
+                for y in range(tile2.ymin, tile1.ymax):
+                    executor.submit(paste, Tile(x, y, self.zoom))
     
     def scalebar(self) -> None:
         scale_len = 4
